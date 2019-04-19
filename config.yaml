@@ -1,0 +1,68 @@
+version: "1.0"
+released: "2019-01-01T00:00:00Z"
+update: true
+jwt:
+  enable: true
+  signkey: TestForFasthttpWithJWT
+  expiredAt: 5
+  loadAccount: true
+  accountFile: jwt_account.yml
+mysql:
+  host: localhost
+  port: "3306"
+  username: admin
+  password: "123456"
+  database: api_server
+  debug: false
+channel:
+  transferqueue: 100
+  logqueue: 100
+webserver:
+  port: "8080"
+  tls: false
+  certificateFile: webCert.pem
+  keyFile: webKey.key
+  maxrpc: 10
+  maxlistenrpc: 1
+  routingMode: 1
+  nonceMode: 1
+keys:
+  loadKey: true
+  keystore: ./keystore
+  password: "123456"
+networks:
+- name: host1
+  http: 127.0.0.1:8501
+  websocket: 127.0.0.1:8541
+  local: 127.0.0.1
+- name: host2
+  http: 127.0.0.1:8502
+  websocket: 127.0.0.1:8542
+  local: 127.0.0.1
+redis:
+  maxconn: 100
+  host: localhost:6379
+  password: ""
+  db: 0
+contract:
+  gasprice: "1"
+  gaslimit: 41000
+  owner: ffbcd481c1330e180879b4d2b9b50642eea43c02
+  initialToken: 100000000000000
+  masterkey1: bea868edea1c167aab5a0eef99496e2a690f3fae
+  masterkey2: 0e18db9aeea79d71b4c91c8375f1ef7fd0aaa594
+  address: 0xd07382Bc89F73b517EBF4e6ccf0a7738435428E7
+f5contract:
+  gasprice: "1"
+  gaslimitdefault: 900000
+  gaslimit:
+    create: 900000
+    credit: 900000
+    debit: 900000
+    deploy: 1000000
+    register: 900000
+    state: 900000
+    tranfer: 900000
+  ethBudget: ffbcd481c1330e180879b4d2b9b50642eea43c02
+  owner: ffbcd481c1330e180879b4d2b9b50642eea43c02
+  address: 0x8a7310B273b162BfaC8430Ab63c3638Fc3D7DE67
