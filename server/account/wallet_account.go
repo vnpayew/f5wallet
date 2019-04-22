@@ -36,11 +36,26 @@ type WalletAccount struct {
     Mutex sync.Mutex
 }
 
+func NewWalletAccount(cfg  *config.Config, routing  *rpc.RpcRouting, addr string, nonce uint64, privateKey *ecdsa.PrivateKey, account *config.TokenAccount) *WalletAccount{
+      wallet := &WalletAccount{
+        cfg: cfg,
+        Routing: routing,
+        Address: addr,
+        PrivateKey: privateKey,
+        Active: true,
+        Account: account,
+        Nonce: nonce,
+      }
+      return wallet
+}
 func  (w *WalletAccount) GetPrivateKey() string {
      return hex.EncodeToString(crypto.FromECDSA(w.PrivateKey))
 }
 
 func  (w *WalletAccount) NewTransactor() *bind.TransactOpts {
+      w.Mutex.Lock()
+      defer w.Mutex.Unlock()
+
       key := w.PrivateKey
     	keyAddr := crypto.PubkeyToAddress(key.PublicKey)
     	auth := &bind.TransactOpts{
@@ -56,12 +71,20 @@ func  (w *WalletAccount) NewTransactor() *bind.TransactOpts {
     			return tx.WithSignature(signer, signature)
     		},
     	}
+     fmt.Println("WalletAccount.NewTransactor(): set gasPrice")
      gasPrice := new(big.Int)
-     gasPrice.SetString(w.cfg.F5Contract.GasPrice,10)
+     if _,ok := gasPrice.SetString(w.cfg.F5Contract.GasPrice,10); !ok {
+       gasPrice.SetString("1000",10)
+     }
+
+
      auth.GasPrice = gasPrice
+
+     fmt.Println("WalletAccount.NewTransactor(): set GasLimit")
      auth.GasLimit = w.cfg.F5Contract.GasLimitDefault
      return auth
 }
+
 func (w *WalletAccount) PrepareTransferTransaction(nonce uint64, gLimit uint64, gPrice string, cAddress string,  from string,to string,amount string,append string)  (*types.Transaction, error)  {
       //1. Get nonce and privateKey
       privateKey := w.PrivateKey

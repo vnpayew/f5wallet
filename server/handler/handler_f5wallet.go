@@ -81,7 +81,7 @@ func (fw *F5WalletHandler) RegisterBatchEthToContract(requestTime int64) []strin
       sublist = append(sublist,item)
       if i > 0 && i % 5 == 0 {
         if len(sublist) > 0 {
-          fmt.Println("Start register sublist: ", i/5)
+          fmt.Println("F5WalletHandler.RegisterBatchEthToContract: Start register sublist: ", i/5)
           tx,err := fw.RegisterAccETH(requestTime,sublist)
           if err != nil {
              ret = append(ret, err.Error())
@@ -93,7 +93,7 @@ func (fw *F5WalletHandler) RegisterBatchEthToContract(requestTime int64) []strin
       }
     }
     if len(sublist) > 0 {
-      fmt.Println("Start register last sublist")
+      fmt.Println("F5WalletHandler.RegisterBatchEthToContract: Start register last sublist")
       tx,err := fw.RegisterAccETH(requestTime,sublist)
       if err != nil {
          ret = append(ret, err.Error())
@@ -471,13 +471,16 @@ func (fw *F5WalletHandler) getTransferHistoryLength(conn *rpc.RpcConnection) (*b
 ////////////////////////////////////////////// Transaction function ##################//////////////////////////////////
 
 func (fw *F5WalletHandler) RegisterAccETH(requestTime int64, listAcc []common.Address) (*types.Transaction, error) {
-    fmt.Println("Start RegisterAccETH, account: ", fw.cfg.F5Contract.Owner)
+    fmt.Println("F5WalletHandler.RegisterAccETH: Start RegisterAccETH, account: ", fw.cfg.F5Contract.Owner)
     account := fw.GetAccountEthAddress(fw.cfg.F5Contract.Owner)
     if account == nil {
-       fmt.Println("Cannot find active account")
+       fmt.Println("F5WalletHandler.RegisterAccETH: Cannot find active account")
        return nil, errors.New("Cannot find bugdet account")
     }
+    fmt.Println("F5WalletHandler.RegisterAccETH: Get new transactor")
     auth := account.NewTransactor()
+
+    fmt.Println("F5WalletHandler.RegisterAccETH: Get gas limit")
     gasLimit,ok := fw.cfg.F5Contract.GasLimit["register"]
     if !ok {
       gasLimit = fw.cfg.F5Contract.GasLimitDefault
@@ -486,19 +489,24 @@ func (fw *F5WalletHandler) RegisterAccETH(requestTime int64, listAcc []common.Ad
 
     retry := 0
     for retry < 3 {
+      fmt.Println("F5WalletHandler.RegisterAccETH: Start RegisterAccETH, retry: ", retry)
       conn := fw.Client.GetConnectionByAccount(account.Address)
+
+      fmt.Println("F5WalletHandler.RegisterAccETH: call registerAccETH ", len(listAcc))
       tx, err := fw.registerAccETH(conn,auth,listAcc)
       if err == nil {
-         fw.redisCache.LogStart(tx.Hash().Hex(), 0, requestTime )
+         key := strings.TrimPrefix(tx.Hash().Hex(),"0x")
+         fw.redisCache.LogStart(key, 0, requestTime )
          return tx,nil
       }
       if !isConnectionError(err) {
           return tx,err
       }
+      fmt.Println("F5WalletHandler.RegisterAccETH: deactive node: ", conn.Name)
       fw.Client.DeactiveNode(conn.Name)
       retry = retry + 1
     }
-    fmt.Println("End RegisterAccETH: retry failed ")
+    fmt.Println("F5WalletHandler.RegisterAccETH: End RegisterAccETH: retry failed ")
     return nil, errors.New("Cannot find wallet in pool to create transaction")
 }
 func (fw *F5WalletHandler) registerAccETH(conn *rpc.RpcConnection, auth *bind.TransactOpts, listAcc []common.Address) (*types.Transaction, error) {
@@ -537,7 +545,8 @@ func (fw *F5WalletHandler) CreateStash(requestTime int64, stashName string, type
           tx,err := session.CreateStash(auth,bs, typeStash)
           if(err == nil){
             //Log transaction
-            fw.redisCache.LogStart(tx.Hash().Hex(), 0, requestTime )
+            key := strings.TrimPrefix(tx.Hash().Hex(),"0x")
+            fw.redisCache.LogStart(key, 0, requestTime )
             return tx, err
           }
           if isConnectionError(err) {
@@ -570,7 +579,8 @@ func (fw *F5WalletHandler) SetState(requestTime int64, stashName string, stashSt
           tx,err := session.SetState(auth, stringTo32Byte(stashName),stashState)
           if(err == nil){
             //Log transaction
-            fw.redisCache.LogStart(tx.Hash().Hex(), 0, requestTime )
+            key := strings.TrimPrefix(tx.Hash().Hex(),"0x")
+            fw.redisCache.LogStart(key, 0, requestTime )
             return tx, err
           }
           if isConnectionError(err) {
@@ -604,7 +614,8 @@ func (fw *F5WalletHandler) Debit(requestTime int64, txRef string, stashName stri
             tx,err := session.Debit(auth, stringTo32Byte(txRef),stringTo32Byte(stashName),amount)
             if(err == nil){
               //Log transaction
-              fw.redisCache.LogStart(tx.Hash().Hex(), 0, requestTime )
+              key := strings.TrimPrefix(tx.Hash().Hex(),"0x")
+              fw.redisCache.LogStart(key, 0, requestTime )
               return tx, err
             }
             if isConnectionError(err) {
@@ -639,7 +650,8 @@ func (fw *F5WalletHandler) Credit(requestTime int64, txRef string, stashName str
           tx,err :=  session.Credit(auth, stringTo32Byte(txRef),stringTo32Byte(stashName),amount)
           if(err == nil){
             //Log transaction
-            fw.redisCache.LogStart(tx.Hash().Hex(), 0, requestTime )
+            key := strings.TrimPrefix(tx.Hash().Hex(),"0x")
+            fw.redisCache.LogStart(key, 0, requestTime )
             return tx, err
           }
           if isConnectionError(err) {
@@ -672,7 +684,8 @@ func (fw *F5WalletHandler) Transfer(requestTime int64, txRef string, sender stri
           tx, err :=  session.Transfer(auth, stringTo32Byte(txRef),stringTo32Byte(sender),stringTo32Byte(receiver),amount,note,txType)
           if(err == nil){
             //Log transaction
-            fw.redisCache.LogStart(tx.Hash().Hex(), 0, requestTime )
+            key := strings.TrimPrefix(tx.Hash().Hex(),"0x")
+            fw.redisCache.LogStart(key, 0, requestTime )
             return tx, err
           }
           if isConnectionError(err) {
@@ -809,15 +822,9 @@ func (fw *F5WalletHandler) NewAccountEth() (string, error) {
       db.Create(new_account)
 
       fmt.Println("Update account to wallet ")
-      wallet := account.WalletAccount{
-        Routing: fw.Client,
-        Address: acc,
-        PrivateKey: privateKey,
-        Nonce: 0,
-        Account: new_account,
-        Active: false,
-      }
-      fw.Wallets = append(fw.Wallets,&wallet)
+      wallet := account.NewWalletAccount(fw.cfg, fw.Client, acc, 0, privateKey, new_account)
+
+      fw.Wallets = append(fw.Wallets,wallet)
       return acc, nil
 }
 
@@ -863,6 +870,7 @@ func (fw *F5WalletHandler) LoadAccountEth(){
     fmt.Println("Cannot get active Token Account in db: ",err)
     return
   }
+
   wallets := []*account.WalletAccount{}
   for _, acc := range accounts {
       fmt.Println("Load wallet: ",acc.Address)
@@ -872,20 +880,13 @@ func (fw *F5WalletHandler) LoadAccountEth(){
          continue
      }
       privateKey := crypto.ToECDSAUnsafe(b)
-      wallet := account.WalletAccount{
-        Routing: fw.Client,
-        Address: acc.Address,
-        PrivateKey: privateKey,
-        Active: true,
-        Account: &acc,
-        Nonce: 0,
-      }
+      wallet := account.NewWalletAccount(fw.cfg, fw.Client, acc.Address, 0, privateKey, &acc)
 
       if fw.cfg.Webserver.NonceMode == 2 {
           fmt.Println("Start sync nonce of ",acc.Address)
           wallet.SyncNonce()
       }
-      wallets = append(wallets,&wallet)
+      wallets = append(wallets,wallet)
   }
   fmt.Println("End load accounts from db: ", len(wallets))
   fw.Mutex.Lock()

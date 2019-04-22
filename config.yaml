@@ -44,6 +44,10 @@ redis:
   host: localhost:6379
   password: ""
   db: 0
+rabbitmq:
+  url: "amqp://guest:guest@localhost:5672/"
+  queueName: "test"
+  maxClient: 100
 contract:
   gasprice: "1"
   gaslimit: 41000
@@ -65,4 +69,4 @@ f5contract:
     tranfer: 900000
   ethBudget: ffbcd481c1330e180879b4d2b9b50642eea43c02
   owner: ffbcd481c1330e180879b4d2b9b50642eea43c02
-  address: 0x8a7310B273b162BfaC8430Ab63c3638Fc3D7DE67
+  address: 0x081e9818dd4c1586D4aA5A8C85e04D0503860eF2

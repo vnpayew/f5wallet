@@ -97,6 +97,11 @@ type Config struct {
 			  Password string `yaml:"password" json:"password"`
 			  Db int `yaml:"db" json:"db"`
 		} `yaml:"redis" json:"redis"`
+    RabbitMq struct {
+        Url string  `yaml:"url" json:"url"`
+			  QueueName string `yaml:"queueName" json:"queueName"`
+			  MaxClient int `yaml:"maxClient" json:"maxClient"`
+		} `yaml:"rabbitmq" json:"rabbitmq"`
 		Contract struct {
         GasPrice string `yaml:"gasprice" json:"gasprice"`
         GasLimit uint64 `yaml:"gaslimit" json:"gaslimit"`
