@@ -44,7 +44,7 @@ func main(){
 				}
 
 				fmt.Println("Set GasLimit: ", gasLimit)
-				// auth.GasLimit = gasLimit
+				auth.GasLimit = gasLimit
 				address, tx, _, err:= f5coin.DeployBusiness(auth,blockchain)
 
 				if err != nil {

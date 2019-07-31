@@ -16,6 +16,8 @@ import (
 var cfg *config.Config
 var rpcrouting *rpc.RpcRouting
 var redisCache *redis.RedisPool
+var resultCache *redis.RedisPool
+
 
 func init() {
   config_file := "config.yaml"
